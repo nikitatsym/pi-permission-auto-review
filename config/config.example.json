@@ -1,0 +1,7 @@
+{
+  "$schema": "../schemas/config.schema.json",
+  "preset": "codex",
+  "timeoutMs": 90000,
+  "maxRetries": 2,
+  "followUpReviews": "auto"
+}
