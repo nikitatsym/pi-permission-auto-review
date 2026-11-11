@@ -1,7 +1,7 @@
 import { A as RULE_LISTS, C as DEFAULTS_ENTRY, D as PRESET_DEFAULTS, E as FOLLOW_UP_REVIEW_MODES, M as parseConfigFile, N as validateConfigFile, O as PRESET_NAMES, P as approximateTokens, S as CONFIG_SCHEMA_URL, T as EXTENSION_ID, _ as BUILT_IN_RULES, a as buildUserPrompt, b as CODEX_AUTO_REVIEW_MODEL, c as POLICY_REVISION$1, d as parseVerdict, f as renderTranscript, g as buildReviewMessage, h as buildFollowUpMessage, j as mergeConfig, k as REASONING_LEVELS, l as buildSystemPrompt$1, m as THINKING_PROMPT, n as renderTranscript$1, o as BUILT_IN_RULES$1, p as findToolCallInput, r as buildFollowUpPrompt, t as parseReviewAssessment, u as parseFastVerdict, v as POLICY_REVISION, w as DEFAULT_CONFIG, x as CODEX_PROVIDER, y as buildSystemPrompt } from "./verdict-qZO-VQH0.js";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
-import { calculateContextTokens, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { calculateContextTokens, discoverContextFiles, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { PERMISSIONS_READY_CHANNEL, getPermissionsService } from "@gotgenes/pi-permission-system";
 import { clampThinkingLevel, isRetryableAssistantError, streamSimple } from "@earendil-works/pi-ai";
 
@@ -1183,10 +1183,11 @@ function permissionAutoReview(pi) {
 			warn(`failed to register ${AUTHORIZER_NAME}: ${describeError(error)}`);
 		}
 	});
-	pi.on("before_agent_start", (event, ctx) => {
+	// omp's before_agent_start event carries no systemPromptOptions.
+	pi.on("before_agent_start", async (_event, ctx) => {
 		const agentDir = resolve(getAgentDir());
 		const projectTrusted = ctx.isProjectTrusted();
-		contextFiles = (event.systemPromptOptions.contextFiles ?? []).filter((file) => projectTrusted || dirname(resolve(file.path)) === agentDir);
+		contextFiles = (await discoverContextFiles(ctx.cwd)).filter((file) => projectTrusted || dirname(resolve(file.path)) === agentDir);
 	});
 	pi.on("turn_start", () => {
 		generation?.resetTurn();
