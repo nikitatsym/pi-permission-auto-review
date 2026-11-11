@@ -3,7 +3,7 @@ import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, unlinkSync, wr
 import { dirname, join, resolve } from "node:path";
 import { calculateContextTokens, getAgentDir } from "@earendil-works/pi-coding-agent";
 import { PERMISSIONS_READY_CHANNEL, getPermissionsService } from "@gotgenes/pi-permission-system";
-import { clampThinkingLevel, isRetryableAssistantError } from "@earendil-works/pi-ai";
+import { clampThinkingLevel, isRetryableAssistantError, streamSimple } from "@earendil-works/pi-ai";
 
 // src/reviewer/model-call.ts
 const FIRST_RETRY_DELAY_MS = 250;
@@ -49,7 +49,7 @@ function replyText(message) {
 	return message.content.flatMap((block) => block.type === "text" ? block.text : []).join("").trim();
 }
 function createModelCall(options) {
-	const { registry, model, config, signal, timeoutSignal, deadline, usage } = options;
+	const { registry, model, config, signal, timeoutSignal, usage } = options;
 	const attemptTimeoutMs = config.attemptTimeoutMs ?? config.timeoutMs;
 	const aborted = () => ({
 		ok: false,
@@ -68,13 +68,14 @@ function createModelCall(options) {
 			const attemptSignal = AbortSignal.any([signal, attemptController.signal]);
 			let failure = "provider-error";
 			try {
-				const reply = await raceWithSignal(registry.streamSimple(model, {
+				// omp's ModelRegistry has no streamSimple.
+				const reply = await raceWithSignal(streamSimple(model, {
 					systemPrompt: request.systemPrompt,
 					messages: request.messages
 				}, {
-					maxRetries: 0,
+					apiKey: registry.resolver(model, options.sessionId),
+					maxHttpAttempts: 1,
 					signal: attemptSignal,
-					timeoutMs: Math.max(1, Math.min(attemptTimeoutMs, deadline - Date.now())),
 					sessionId: `${SESSION_KEY_PREFIX}${options.sessionId}`,
 					...reasoning === "off" ? {} : { reasoning },
 					...request.maxTokens === void 0 ? {} : { maxTokens: request.maxTokens }
@@ -887,7 +888,6 @@ function resolveReviewModel(registry, config) {
 const DECISION_EVENT = "auto_review.decision";
 async function runReview(runtime, preset, details, conversation) {
 	const { config, context } = runtime;
-	const deadline = Date.now() + config.timeoutMs;
 	const timeoutController = new AbortController();
 	const timeout = setTimeout(() => timeoutController.abort(), config.timeoutMs);
 	const turnSignal = context.signal;
@@ -919,7 +919,6 @@ async function runReview(runtime, preset, details, conversation) {
 			sessionId: context.sessionManager.getSessionId(),
 			signal,
 			timeoutSignal: timeoutController.signal,
-			deadline,
 			usage
 		});
 		return {
