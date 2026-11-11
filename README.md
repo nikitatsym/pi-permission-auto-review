@@ -2,6 +2,20 @@
 
 [![npm](https://img.shields.io/npm/v/@mzwing/pi-permission-auto-review)](https://www.npmjs.com/package/@mzwing/pi-permission-auto-review)
 
+> **omp fork:** Fork of `@mzwing/pi-permission-auto-review` 1.0.1
+> (from [mzwing/pi-packages](https://github.com/mzwing/pi-packages)) for
+> [oh-my-pi](https://github.com/can1357/oh-my-pi) (omp), with patches to the
+> published `dist/index.js`:
+>
+> 1. Review model via the registry's `getAll` and `find`; omp has no `getProvider`.
+> 2. Model call via `streamSimple` from omp's `pi-ai`; omp's registry has none.
+> 3. Context files via `discoverContextFiles`; omp's `before_agent_start` has no
+>    `systemPromptOptions`.
+>
+> Any omp model can review (`provider` and `model` in the config). Install after the
+> [pi-permission-system fork](https://github.com/nikitatsym/pi-permission-system):
+> `omp plugin install "git+https://github.com/nikitatsym/pi-permission-auto-review.git"`
+
 A [Pi](https://github.com/earendil-works/pi) extension that adds automatic permission reviews to [`@gotgenes/pi-permission-system`](https://github.com/gotgenes/pi-packages/tree/main/packages/pi-permission-system). Each ask is judged by a reviewer model first; whatever it cannot decide falls through to the normal prompt. A preset picks the reviewer:
 
 - `codex`, the default: OpenAI's `codex-auto-review` model against a bundled adaptation of the [OpenAI Codex Guardian policy](https://github.com/openai/codex/tree/main/codex-rs/prompts/templates/guardian).
