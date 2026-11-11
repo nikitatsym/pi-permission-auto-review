@@ -852,10 +852,11 @@ function registerAutoReviewCommand(pi, controller) {
 
 // src/reviewer/model.ts
 const CODEX_API = "openai-codex-responses";
+// omp's ModelRegistry has no getProvider.
 /** `codex-auto-review` is hidden from the registry, so it is derived from another model of the Codex provider */
 function resolveReviewModel(registry, config) {
-	const provider = registry.getProvider(config.provider);
-	if (provider === void 0) return {
+	const providerModels = registry.getAll().filter((model) => model.provider === config.provider);
+	if (providerModels.length === 0) return {
 		ok: false,
 		category: "provider-unresolved"
 	};
@@ -868,7 +869,7 @@ function resolveReviewModel(registry, config) {
 		ok: false,
 		category: "model-unresolved"
 	};
-	const template = registry.getAll().find((model) => model.provider === "openai-codex" && model.api === CODEX_API) ?? provider.getModels().find((model) => model.api === CODEX_API);
+	const template = providerModels.find((model) => model.api === CODEX_API);
 	return template === void 0 ? {
 		ok: false,
 		category: "model-unresolved"
